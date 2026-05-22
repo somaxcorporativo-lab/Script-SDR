@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Script SDR — Somax</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161d;
+    --surface2: #1a1e28;
+    --border: #252a38;
+    --accent: #f0a500;
+    --accent2: #e05c1a;
+    --green: #2ecc8a;
+    --red: #e05c1a;
+    --text: #e8eaf0;
+    --muted: #7a8099;
+    --sdr: #3b82f6;
+    --client: #9b59b6;
+    --tip: #f0a500;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text); font-weight: 400; }
+  .badge {
+    background: rgba(240,165,0,0.12);
+    border: 1px solid rgba(240,165,0,0.3);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+
+  /* ── LAYOUT ── */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  .intro {
+    margin-bottom: 40px;
+  }
+  .intro h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .intro h1 em { color: var(--accent); font-style: normal; }
+  .intro p { color: var(--muted); font-size: 14px; }
+
+  /* ── PHASE TABS ── */
+  .phases {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+  }
+  .phase-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .phase-btn:hover { border-color: var(--accent); color: var(--text); }
+  .phase-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d0f14;
+    font-weight: 700;
+  }
+
+  /* ── PHASE CONTENT ── */
+  .phase-content { display: none; }
+  .phase-content.active { display: block; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── CHAT BUBBLES ── */
+  .chat { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+
+  .bubble-wrap {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .bubble-wrap.sdr { flex-direction: row; }
+  .bubble-wrap.client { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .avatar.sdr-av { background: rgba(59,130,246,0.2); color: var(--sdr); border: 1px solid rgba(59,130,246,0.3); }
+  .avatar.client-av { background: rgba(155,89,182,0.2); color: var(--client); border: 1px solid rgba(155,89,182,0.3); }
+
+  .bubble {
+    max-width: 75%;
+    border-radius: 14px;
+    padding: 12px 16px;
+    position: relative;
+    cursor: text;
+  }
+  .bubble.sdr-bubble {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px 14px 14px 14px;
+  }
+  .bubble.client-bubble {
+    background: rgba(155,89,182,0.12);
+    border: 1px solid rgba(155,89,182,0.2);
+    border-radius: 14px 4px 14px 14px;
+    text-align: right;
+    color: #cbb8e8;
+  }
+
+  .bubble-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    opacity: 0.6;
+  }
+  .sdr-bubble .bubble-label { color: var(--sdr); }
+  .client-bubble .bubble-label { color: var(--client); }
+
+  .bubble-text {
+    font-size: 14px;
+    line-height: 1.6;
+    outline: none;
+    min-height: 20px;
+    white-space: pre-wrap;
+  }
+  .bubble-text:focus {
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    padding: 4px 6px;
+    margin: -4px -6px;
+  }
+
+  .edit-icon {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: var(--muted);
+  }
+  .bubble:hover .edit-icon { opacity: 1; }
+
+  /* ── TIP CARDS ── */
+  .tips { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+  .tip-card {
+    background: rgba(240,165,0,0.07);
+    border: 1px solid rgba(240,165,0,0.2);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #d4b97a;
+    cursor: text;
+    outline: none;
+    transition: background 0.2s;
+  }
+  .tip-card:focus { background: rgba(240,165,0,0.12); }
+  .tip-card strong { color: var(--accent); display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+
+  /* ── OBJECTION CARDS ── */
+  .objections { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 32px; }
+  @media (max-width: 600px) { .objections { grid-template-columns: 1fr; } }
+
+  .obj-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .obj-trigger {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--red);
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .obj-trigger::before { content: '↯'; font-size: 14px; }
+  .obj-response {
+    font-size: 13px;
+    color: #b0bec5;
+    outline: none;
+    cursor: text;
+    line-height: 1.6;
+  }
+  .obj-response:focus { color: var(--text); }
+
+  /* ── RULES TABLE ── */
+  .rules { display: flex; gap: 16px; margin-bottom: 32px; }
+  @media (max-width: 600px) { .rules { flex-direction: column; } }
+  .rule-col {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .rule-col h4 {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .rule-col.never h4 { color: var(--red); }
+  .rule-col.always h4 { color: var(--green); }
+  .rule-col ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .rule-col ul li {
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .rule-col.never ul li { background: rgba(224,92,26,0.08); color: #e07a5a; }
+  .rule-col.never ul li::before { content: '✕'; color: var(--red); font-size: 11px; font-weight: 700; }
+  .rule-col.always ul li { background: rgba(46,204,138,0.08); color: #7ecfb3; }
+  .rule-col.always ul li::before { content: '✓'; color: var(--green); font-size: 11px; font-weight: 700; }
+
+  /* ── CLOSING CTA ── */
+  .closing-box {
+    background: linear-gradient(135deg, rgba(240,165,0,0.1), rgba(224,92,26,0.08));
+    border: 1px solid rgba(240,165,0,0.3);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+  .closing-box h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .closing-bubble {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+    text-align: left;
+    outline: none;
+    cursor: text;
+    margin-bottom: 12px;
+  }
+  .closing-bubble:focus { border-color: var(--accent); }
+
+  /* ── SAVE BUTTON ── */
+  .toolbar {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    gap: 8px;
+    z-index: 200;
+  }
+  .btn {
+    background: var(--accent);
+    color: #0d0f14;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 12px 22px;
+    border-radius: 10px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 20px rgba(240,165,0,0.3);
+    transition: all 0.2s;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(240,165,0,0.4); }
+  .btn.secondary {
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+  .btn.secondary:hover { color: var(--text); border-color: var(--muted); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    right: 24px;
+    background: var(--green);
+    color: #0d0f14;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── PROGRESS ── */
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── HIGHLIGHT ── */
+  .var-highlight { color: var(--accent); font-weight: 600; }
+
+  /* ── DIAG TAG ── */
+  .diag-tag {
+    display: inline-block;
+    background: rgba(46,204,138,0.12);
+    border: 1px solid rgba(46,204,138,0.25);
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Somax <span>/ SDR Script</span></div>
+  <div class="badge">Construção Civil</div>
+</header>
+
+<div class="container">
+
+  <div class="intro">
+    <h1>Script de Abordagem<br><em>Donos de Construtoras</em></h1>
+    <p>Clique em qualquer texto para editar. Todas as alterações ficam salvas no seu navegador.</p>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:20%"></div></div>
+
+  <!-- TABS -->
+  <div class="phases">
+    <button class="phase-btn active" onclick="showPhase(1,this)">① Abertura</button>
+    <button class="phase-btn" onclick="showPhase(2,this)">② Diagnóstico</button>
+    <button class="phase-btn" onclick="showPhase(3,this)">③ Interesse</button>
+    <button class="phase-btn" onclick="showPhase(4,this)">④ Objeções</button>
+    <button class="phase-btn" onclick="showPhase(5,this)">⑤ Fechamento</button>
+    <button class="phase-btn" onclick="showPhase(6,this)">⑥ Regras</button>
+  </div>
+
+  <!-- FASE 1 — ABERTURA -->
+  <div class="phase-content active" id="phase1">
+    <div class="section-label">Fase 1 — Primeira mensagem</div>
+
+    <div class="tips">
+      <div class="tip-card" contenteditable="true"><strong>🎯 Objetivo desta fase</strong>Gerar curiosidade sem apresentar a Somax ainda. O lead precisa responder "sim" ou "mais ou menos" — e aí você abre a dor.</div>
+    </div>
+
+    <div class="chat">
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Você envia</div>
+          <div class="bubble-text" contenteditable="true">Olá, <span class="var-highlight">{Nome do cliente}</span>! Tudo bem? 👋</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap client">
+        <div class="avatar client-av">CLI</div>
+        <div class="bubble client-bubble">
+          <div class="bubble-label">Cliente responde</div>
+          <div class="bubble-text" contenteditable="true">Tudo bem, sim! Quem fala?</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Você responde — mensagem 1</div>
+          <div class="bubble-text" contenteditable="true">Sou a Camila, da Somax.
+
+Essa semana me recomendaram a <span class="var-highlight">{empresa do cliente}</span> pela qualidade das obras.
+
+Mas tive dificuldade em encontrar vocês na internet.</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Você envia — pergunta de abertura</div>
+          <div class="bubble-text" contenteditable="true">Hoje os clientes que chegam por indicação estão conseguindo preencher toda a capacidade comercial da construtora?</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tips">
+      <div class="tip-card" contenteditable="true"><strong>💡 Variação — empresa nova / recém-aberta</strong>Vi que vocês começaram a operação recentemente. Analisamos e a empresa ainda não está visível pro cliente — isso abre uma oportunidade muito forte logo no início.</div>
+      <div class="tip-card" contenteditable="true"><strong>⚠️ Não faça isso agora</strong>Não explique o que a Somax faz. Não mande material. Não diga "trabalho com marketing". Espere a resposta primeiro.</div>
+    </div>
+  </div>
+
+  <!-- FASE 2 — DIAGNÓSTICO -->
+  <div class="phase-content" id="phase2">
+    <div class="section-label">Fase 2 — Entender a dor</div>
+
+    <div class="tips">
+      <div class="tip-card" contenteditable="true"><strong>🎯 Objetivo desta fase</strong>Usar UMA pergunta por vez. Deixar o cliente falar. Quanto mais ele falar, mais você entende o cenário — e mais ele percebe o próprio problema.</div>
+    </div>
+
+    <div class="chat">
+      <div class="bubble-wrap client">
+        <div class="avatar client-av">CLI</div>
+        <div class="bubble client-bubble">
+          <div class="bubble-label">Se o cliente disser que sim (indicação está OK)</div>
+          <div class="bubble-text" contenteditable="true">Sim, temos bastante cliente por indicação...</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Você aprofunda — previsibilidade</div>
+          <div class="bubble-text" contenteditable="true">Entendo. Esses clientes de indicação chegam com regularidade todo mês ou tem variação? Tipo um mês bomba e outro mais fraco?</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Se precisar abrir mais a dor — capacidade operacional</div>
+          <div class="bubble-text" contenteditable="true">Faz sentido. Só por curiosidade — é só você fazendo o atendimento comercial ou tem mais alguém na equipe?</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Pergunta sobre canais atuais</div>
+          <div class="bubble-text" contenteditable="true">Além da indicação, vocês usam mais alguma estratégia pra captar cliente hoje? WhatsApp, Google, tráfego...?</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Pergunta sobre WhatsApp</div>
+          <div class="bubble-text" contenteditable="true">Chega bastante gente no WhatsApp de vocês buscando orçamento?</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tips">
+      <div class="tip-card" contenteditable="true"><strong>📌 Sinais de dor que você precisa ouvir</strong>"Não é todo mês igual" / "Fico dependendo muito de indicação" / "Tem mês que o comercial fica parado" / "É difícil fechar obra nova quando termina uma" — qualquer um desses é sinal verde pra avançar.</div>
+    </div>
+  </div>
+
+  <!-- FASE 3 — INTERESSE -->
+  <div class="phase-content" id="phase3">
+    <div class="section-label">Fase 3 — Mostrar tamanho da oportunidade</div>
+
+    <div class="tips">
+      <div class="tip-card" contenteditable="true"><strong>🎯 Objetivo desta fase</strong>Fazer o lead visualizar o volume de clientes que está passando por ele agora, sem perceber. Use números reais do mercado — não prometa resultado.</div>
+    </div>
+
+    <div class="chat">
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Contexto de mercado — concorrência fraca</div>
+          <div class="bubble-text" contenteditable="true">Olhando a concorrência de vocês aqui na região... muitas construtoras não atendem o telefone, outras têm número errado, tem empresa sem site. O nível é baixo.</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Volume de busca — ancoragem de número</div>
+          <div class="bubble-text" contenteditable="true">Só aqui na região, tem em torno de 400 a 600 pessoas por dia buscando no Google por construtora, obra, reforma...
+
+A maioria dessas pessoas não acha ninguém confiável e desiste ou pede indicação pra alguém.</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Oportunidade concreta — sem promessa</div>
+          <div class="bubble-text" contenteditable="true">Se trouxéssemos 4 ou 5 pessoas interessadas por dia pra vocês, não é nada de outro mundo — mas muda muito o comercial. Fica mais fácil fechar 4, 5 projetos por mês com consistência.</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Reforço comportamental — pós-pandemia</div>
+          <div class="bubble-text" contenteditable="true">Depois da pandemia o comportamento mudou muito. O cliente não liga mais, não vai na loja física, não pede indicação primeiro. Ele vai pro Google. E se não te acha, vai no próximo.</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Prova social — similar ao lead</div>
+          <div class="bubble-text" contenteditable="true">Recentemente ajudamos uma construtora aqui no setor, muito parecida com a de vocês, a ter mais previsibilidade no comercial. Saiu de mês irregular pra uma entrada constante de orçamentos todo mês.</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FASE 4 — OBJEÇÕES -->
+  <div class="phase-content" id="phase4">
+    <div class="section-label">Fase 4 — Quebra de objeções</div>
+
+    <div class="tips">
+      <div class="tip-card" contenteditable="true"><strong>🎯 Regra de ouro</strong>Nunca tente convencer. Devolva com uma pergunta ou reconheça e redirecione. Clique nas respostas abaixo para editar.</div>
+    </div>
+
+    <div class="objections">
+      <div class="obj-card">
+        <div class="obj-trigger">Já tenho clientes suficientes</div>
+        <div class="obj-response" contenteditable="true">Ótimo sinal! Esses clientes chegam com regularidade todo mês ou tem variação? A gente faz diferença quando o mês fica fraco.</div>
+      </div>
+
+      <div class="obj-card">
+        <div class="obj-trigger">Já faço tráfego / já tenho agência</div>
+        <div class="obj-response" contenteditable="true">Legal. O que acontece depois que o lead chega? Ele cai no WhatsApp, como é o atendimento? A maioria das construtoras perde o lead depois do clique.</div>
+      </div>
+
+      <div class="obj-card">
+        <div class="obj-trigger">Não tenho tempo agora</div>
+        <div class="obj-response" contenteditable="true">Faz sentido, você tá no operacional. Por isso a conversa é rápida — 30 minutos, a gente olha o cenário e já mostra onde tá o gargalo. Quarta ou quinta encaixa melhor?</div>
+      </div>
+
+      <div class="obj-card">
+        <div class="obj-trigger">Quanto custa?</div>
+        <div class="obj-response" contenteditable="true">Antes disso, a gente precisa entender o cenário de vocês pra saber o que faz sentido. Cada construtora tem um desafio diferente. A primeira conversa é um diagnóstico gratuito mesmo.</div>
+      </div>
+
+      <div class="obj-card">
+        <div class="obj-trigger">Me manda um material</div>
+        <div class="obj-response" contenteditable="true">Claro, posso mandar. Mas antes — qual é o maior desafio comercial de vocês hoje? Indicação muito irregular, pouco volume de lead, demora pra fechar...?</div>
+      </div>
+
+      <div class="obj-card">
+        <div class="obj-trigger">Não me interessa / não preciso</div>
+        <div class="obj-response" contenteditable="true">Entendo. Só uma curiosidade — se o comercial travasse por 2 meses, você teria de onde tirar obra nova além da indicação? Só pra entender o cenário de vocês.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FASE 5 — FECHAMENTO -->
+  <div class="phase-content" id="phase5">
+    <div class="section-label">Fase 5 — Marcar a reunião com o closer</div>
+
+    <div class="tips">
+      <div class="tip-card" contenteditable="true"><strong>🎯 Objetivo desta fase</strong>Não vender — propor um diagnóstico gratuito. A reunião é com o consultor (closer), não com você. Isso tira a pressão do lead.</div>
+    </div>
+
+    <div class="diag-tag">✔ Diagnóstico 100% Gratuito · 30 minutos</div>
+
+    <div class="closing-box">
+      <h3>Mensagem de fechamento — enviar quando a dor estiver aberta</h3>
+      <div class="closing-bubble" contenteditable="true">Faz sentido a gente marcar 30 minutos com um consultor nosso.
+
+A gente olha o cenário comercial de vocês, identifica onde tá perdendo cliente e já mostra um plano de ação pra resolver.
+
+É gratuito e sem compromisso. Quarta ou quinta fica melhor pra você?</div>
+    </div>
+
+    <div class="chat">
+      <div class="bubble-wrap client">
+        <div class="avatar client-av">CLI</div>
+        <div class="bubble client-bubble">
+          <div class="bubble-label">Se o cliente confirmar</div>
+          <div class="bubble-text" contenteditable="true">Pode ser quinta...</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Você confirma</div>
+          <div class="bubble-text" contenteditable="true">Perfeito! Quinta fica bem.
+
+Manhã ou tarde fica melhor pra você?</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+
+      <div class="bubble-wrap sdr">
+        <div class="avatar sdr-av">SDR</div>
+        <div class="bubble sdr-bubble">
+          <div class="bubble-label">Após confirmar o horário — encerrar com segurança</div>
+          <div class="bubble-text" contenteditable="true">Ótimo, <span class="var-highlight">{Nome}</span>! Vou confirmar com o consultor e te mando o link da reunião.
+
+Qualquer dúvida antes, pode chamar aqui. 👍</div>
+          <span class="edit-icon">✎</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FASE 6 — REGRAS -->
+  <div class="phase-content" id="phase6">
+    <div class="section-label">Fase 6 — Regras do script</div>
+
+    <div class="tips">
+      <div class="tip-card" contenteditable="true"><strong>🎯 Mentalidade SDR</strong>Você não tá vendendo. Você tá diagnosticando. O lead precisa chegar na reunião sentindo que foi você que entendeu o problema dele — não que foi empurrado pra uma call de venda.</div>
+    </div>
+
+    <div class="rules">
+      <div class="rule-col never">
+        <h4>🚫 Nunca use</h4>
+        <ul>
+          <li contenteditable="true">funil de vendas</li>
+          <li contenteditable="true">omnichannel</li>
+          <li contenteditable="true">branding</li>
+          <li contenteditable="true">ecossistema digital</li>
+          <li contenteditable="true">conversão</li>
+          <li contenteditable="true">posicionamento estratégico</li>
+          <li contenteditable="true">jornada do cliente</li>
+          <li contenteditable="true">textão de apresentação da empresa</li>
+          <li contenteditable="true">prometer resultado específico</li>
+        </ul>
+      </div>
+      <div class="rule-col always">
+        <h4>✅ Use sempre</h4>
+        <ul>
+          <li contenteditable="true">orçamento, obra, cliente</li>
+          <li contenteditable="true">aparecer no Google</li>
+          <li contenteditable="true">indicação</li>
+          <li contenteditable="true">WhatsApp</li>
+          <li contenteditable="true">mês fraco / comercial parado</li>
+          <li contenteditable="true">previsibilidade</li>
+          <li contenteditable="true">diagnóstico gratuito</li>
+          <li contenteditable="true">perguntas curtas — uma por vez</li>
+          <li contenteditable="true">linguagem de obra, não de marketing</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tips">
+      <div class="tip-card" contenteditable="true"><strong>📞 Fluxo completo em 5 passos</strong>
+1. Abertura com gancho de recomendação
+2. Pergunta sobre capacidade comercial atual
+3. Diagnóstico da dor (previsibilidade, volume, concorrência)
+4. Mostrar oportunidade com número real
+5. Propor 30min de diagnóstico gratuito — fechar dia e horário</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <button class="btn secondary" onclick="resetAll()">↺ Resetar</button>
+  <button class="btn" onclick="saveAll()">💾 Salvar edições</button>
+</div>
+
+<div class="toast" id="toast">✔ Script salvo com sucesso!</div>
+
+<script>
+  const PHASES = 6;
+  const STORAGE_KEY = 'somax_sdr_script_v1';
+
+  function showPhase(n, btn) {
+    document.querySelectorAll('.phase-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.phase-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('phase' + n).classList.add('active');
+    btn.classList.add('active');
+    document.getElementById('progressFill').style.width = (n / PHASES * 100) + '%';
+  }
+
+  // ── SAVE / LOAD ──
+  function saveAll() {
+    const data = {};
+    document.querySelectorAll('[contenteditable="true"]').forEach((el, i) => {
+      data['el_' + i] = el.innerHTML;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    showToast();
+  }
+
+  function loadAll() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (!data) return;
+      document.querySelectorAll('[contenteditable="true"]').forEach((el, i) => {
+        if (data['el_' + i] !== undefined) el.innerHTML = data['el_' + i];
+      });
+    } catch(e) {}
+  }
+
+  function resetAll() {
+    if (confirm('Resetar tudo para o padrão original?')) {
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
+  }
+
+  function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ── AUTO-SAVE on edit ──
+  let saveTimer;
+  document.addEventListener('input', function(e) {
+    if (e.target.hasAttribute('contenteditable')) {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveAll, 1200);
+    }
+  });
+
+  // ── LOAD on start ──
+  window.addEventListener('DOMContentLoaded', loadAll);
+</script>
+</body>
+</html>
